@@ -1,8 +1,9 @@
 "use client";
-import Link from "next/link";
 // The developer workspace, laid out like a feedback inbox:
 // top bar with the app switcher · versions on the left · the selected version in the middle · live feedback on the right.
+import Link from "next/link";
 import { SWIFT_PACKAGE_URL, REPO_URL } from "../lib/site-url";
+import { withBusy } from "../lib/busy";
 import { useEffect, useRef, useState } from "react";
 import { AppMark, BrandMark } from "./icons";
 import { CopyCode, ThemeSwitch } from "./widgets";
@@ -577,11 +578,7 @@ function AccountView({ me, apps, asc, play, emailAlerts, smtpConfigured, flash }
             <form className="dash-form" onSubmit={async (e) => {
               e.preventDefault();
               if (!matches) return;
-              setBusy(true);
-              let error: string | null;
-              try { error = await deleteAccount(confirmText); }
-              catch { error = NETWORK_ERROR; }
-              finally { setBusy(false); }
+              const error = await withBusy(setBusy, () => deleteAccount(confirmText));
               if (error) return setErr(error);
               location.href = "/login?deleted=1";
             }}>
@@ -596,8 +593,6 @@ function AccountView({ me, apps, asc, play, emailAlerts, smtpConfigured, flash }
   );
 }
 
-// Shown when a store call throws (network failure) instead of returning its own error.
-const NETWORK_ERROR = "Something went wrong. Check your connection and try again.";
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
 const syncSummary = (r: { imported: number; published: number }) =>
   r.imported || r.published ? `Imported ${plural(r.imported, "version")}, published ${r.published}` : "Already up to date";
@@ -626,11 +621,7 @@ function AscKeyPanel({ asc, flash }: { asc: AscConnection | null; flash: Flash }
       <p>Import versions and their What&apos;s New text automatically. In App Store Connect, open Users and Access → Integrations → App Store Connect API, create a key with the App Manager role and download the .p8 file.</p>
       <form className="dash-form" onSubmit={async (e) => {
         e.preventDefault();
-        setBusy(true);
-        let error: string | null;
-        try { error = await ascConnect(f.issuerId, f.keyId, f.privateKey); }
-        catch { error = NETWORK_ERROR; }
-        finally { setBusy(false); }
+        const error = await withBusy(setBusy, () => ascConnect(f.issuerId, f.keyId, f.privateKey));
         if (error) return setErr(error);
         setErr(""); flash("App Store Connect connected");
       }}>
@@ -655,14 +646,13 @@ function AscAppPanel({ app, asc, go, flash }: { app: App; asc: AscConnection | n
   const [pick, setPick] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
-  const run = async (fn: () => Promise<{ data?: { imported: number; published: number }; error?: string }>) => {
-    setBusy(true); setErr("");
-    let r: Awaited<ReturnType<typeof fn>>;
-    try { r = await fn(); }
-    catch { r = { error: NETWORK_ERROR }; }
-    finally { setBusy(false); }
-    if (r.error) setErr(r.error); else if (r.data) flash(syncSummary(r.data));
+  const run = async <T,>(fn: () => Promise<{ data?: T; error?: string }>, done: (data: T) => void) => {
+    setErr("");
+    let data: T | undefined;
+    const error = await withBusy(setBusy, async () => { const r = await fn(); data = r.data; return r.error || null; });
+    if (error) setErr(error); else if (data) done(data);
   };
+  const imported = (r: { imported: number; published: number }) => flash(syncSummary(r));
   if (!asc) {
     return (
       <div className="panel">
@@ -679,7 +669,7 @@ function AscAppPanel({ app, asc, go, flash }: { app: App; asc: AscConnection | n
         <p>Imports from App Store app <span className="mono">{app.ascAppId}</span>. New versions arrive as drafts and are published when they go live.</p>
         {err && <p className="form-error" role="alert">{err}</p>}
         <div className="row">
-          <button className="button button-quiet" type="button" disabled={busy} onClick={() => run(() => ascSync(app.slug))}>{busy ? "Importing…" : "Sync now"}</button>
+          <button className="button button-quiet" type="button" disabled={busy} onClick={() => run(() => ascSync(app.slug), imported)}>{busy ? "Importing…" : "Sync now"}</button>
           <button className="button button-quiet" type="button" disabled={busy} onClick={async () => { await ascLink(app.slug, null); flash("Unlinked"); }}>Unlink</button>
         </div>
       </div>
@@ -690,18 +680,11 @@ function AscAppPanel({ app, asc, go, flash }: { app: App; asc: AscConnection | n
       <h2>App Store Connect</h2>
       <p>Choose the App Store app this changelog belongs to. Its versions are imported right away.</p>
       {choices === null ? (
-        <div className="row"><button className="button button-quiet" type="button" disabled={busy} onClick={async () => {
-          setBusy(true);
-          let r: Awaited<ReturnType<typeof ascApps>>;
-          try { r = await ascApps(); }
-          catch { r = { error: NETWORK_ERROR }; }
-          finally { setBusy(false); }
-          if (r.error) setErr(r.error); else { setChoices(r.data!.apps); setPick(r.data!.apps[0]?.id || ""); }
-        }}>{busy ? "Loading…" : "Choose an App Store app"}</button></div>
+        <div className="row"><button className="button button-quiet" type="button" disabled={busy} onClick={() => run(ascApps, ({ apps }) => { setChoices(apps); setPick(apps[0]?.id || ""); })}>{busy ? "Loading…" : "Choose an App Store app"}</button></div>
       ) : choices.length === 0 ? (
         <p>Your key can&apos;t see any apps yet.</p>
       ) : (
-        <form className="dash-form" onSubmit={(e) => { e.preventDefault(); run(() => ascLink(app.slug, pick)); }}>
+        <form className="dash-form" onSubmit={(e) => { e.preventDefault(); run(() => ascLink(app.slug, pick), imported); }}>
           <label>App Store app
             <select value={pick} onChange={(e) => setPick(e.target.value)}>
               {choices.map((c) => <option key={c.id} value={c.id}>{c.name} · {c.bundleId}</option>)}
@@ -738,11 +721,7 @@ function PlayKeyPanel({ play, flash }: { play: { clientEmail: string } | null; f
       <p>Needed only for Android apps that require app proofs. In the Google Cloud project linked to your app in Play Console, create a service account, enable the Play Integrity API and download a JSON key.</p>
       <form className="dash-form" onSubmit={async (e) => {
         e.preventDefault();
-        setBusy(true);
-        let error: string | null;
-        try { error = await playConnect(text); }
-        catch { error = NETWORK_ERROR; }
-        finally { setBusy(false); }
+        const error = await withBusy(setBusy, () => playConnect(text));
         if (error) return setErr(error);
         setErr(""); setText(""); flash("Google Play Integrity connected");
       }}>
@@ -795,29 +774,30 @@ function ProfilePanel({ me, flash }: { me: { name: string; email: string }; flas
   const [email, setEmail] = useState("");
   const [pw, setPw] = useState({ current: "", next: "" });
   const [msg, setMsg] = useState<{ part: string; error?: string; ok?: string } | null>(null);
+  const [busy, setBusy] = useState(false);
   const show = (part: string, error: string | null, ok: string) => error ? setMsg({ part, error }) : (setMsg({ part, ok }), flash(ok));
   const note = (part: string) => msg?.part === part && (msg.error ? <p className="form-error" role="alert">{msg.error}</p> : <p role="status">{msg.ok}</p>);
   return (
     <div className="panel">
       <h2>Profile</h2>
-      <form className="dash-form" onSubmit={async (e) => { e.preventDefault(); show("name", await updateName(name), "Name saved"); }}>
+      <form className="dash-form" onSubmit={async (e) => { e.preventDefault(); show("name", await withBusy(setBusy, () => updateName(name)), "Name saved"); }}>
         <label>Name<input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" required /></label>
         <p>Shown next to your replies. Replies you already posted keep the old name.</p>
         {note("name")}
-        <div className="row"><button className="button button-quiet" type="submit" disabled={!name.trim() || name.trim() === me.name}>Save name</button></div>
+        <div className="row"><button className="button button-quiet" type="submit" disabled={busy || !name.trim() || name.trim() === me.name}>Save name</button></div>
       </form>
-      <form className="dash-form" onSubmit={async (e) => { e.preventDefault(); const err = await changeEmail(email); show("email", err, "Check both inboxes to confirm the change"); if (!err) setEmail(""); }}>
+      <form className="dash-form" onSubmit={async (e) => { e.preventDefault(); const err = await withBusy(setBusy, () => changeEmail(email)); show("email", err, "Check both inboxes to confirm the change"); if (!err) setEmail(""); }}>
         <label>New email<input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={me.email} autoComplete="email" required /></label>
         {note("email")}
-        <div className="row"><button className="button button-quiet" type="submit" disabled={!email.trim()}>Change email</button></div>
+        <div className="row"><button className="button button-quiet" type="submit" disabled={busy || !email.trim()}>Change email</button></div>
       </form>
-      <form className="dash-form" onSubmit={async (e) => { e.preventDefault(); const err = await changePassword(pw.current, pw.next); show("password", err, "Password changed"); if (!err) setPw({ current: "", next: "" }); }}>
+      <form className="dash-form" onSubmit={async (e) => { e.preventDefault(); const err = await withBusy(setBusy, () => changePassword(pw.current, pw.next)); show("password", err, "Password changed"); if (!err) setPw({ current: "", next: "" }); }}>
         <div className="row">
           <label style={{ flex: 1 }}>Current password<input type="password" value={pw.current} onChange={(e) => setPw({ ...pw, current: e.target.value })} autoComplete="current-password" required /></label>
           <label style={{ flex: 1 }}>New password<input type="password" value={pw.next} onChange={(e) => setPw({ ...pw, next: e.target.value })} autoComplete="new-password" minLength={8} required /></label>
         </div>
         {note("password")}
-        <div className="row"><button className="button button-quiet" type="submit" disabled={!pw.current || pw.next.length < 8}>Change password</button></div>
+        <div className="row"><button className="button button-quiet" type="submit" disabled={busy || !pw.current || pw.next.length < 8}>Change password</button></div>
       </form>
     </div>
   );

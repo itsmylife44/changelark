@@ -575,8 +575,10 @@ function AccountView({ me, apps, asc, play, emailAlerts, smtpConfigured, flash }
               e.preventDefault();
               if (!matches) return;
               setBusy(true);
-              const error = await deleteAccount(confirmText);
-              setBusy(false);
+              let error: string | null;
+              try { error = await deleteAccount(confirmText); }
+              catch { error = NETWORK_ERROR; }
+              finally { setBusy(false); }
               if (error) return setErr(error);
               location.href = "/login?deleted=1";
             }}>
@@ -591,6 +593,8 @@ function AccountView({ me, apps, asc, play, emailAlerts, smtpConfigured, flash }
   );
 }
 
+// Shown when a store call throws (network failure) instead of returning its own error.
+const NETWORK_ERROR = "Something went wrong. Check your connection and try again.";
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
 const syncSummary = (r: { imported: number; published: number }) =>
   r.imported || r.published ? `Imported ${plural(r.imported, "version")}, published ${r.published}` : "Already up to date";
@@ -620,8 +624,10 @@ function AscKeyPanel({ asc, flash }: { asc: AscConnection | null; flash: Flash }
       <form className="dash-form" onSubmit={async (e) => {
         e.preventDefault();
         setBusy(true);
-        const error = await ascConnect(f.issuerId, f.keyId, f.privateKey);
-        setBusy(false);
+        let error: string | null;
+        try { error = await ascConnect(f.issuerId, f.keyId, f.privateKey); }
+        catch { error = NETWORK_ERROR; }
+        finally { setBusy(false); }
         if (error) return setErr(error);
         setErr(""); flash("App Store Connect connected");
       }}>
@@ -648,8 +654,10 @@ function AscAppPanel({ app, asc, go, flash }: { app: App; asc: AscConnection | n
   const [busy, setBusy] = useState(false);
   const run = async (fn: () => Promise<{ data?: { imported: number; published: number }; error?: string }>) => {
     setBusy(true); setErr("");
-    const r = await fn();
-    setBusy(false);
+    let r: Awaited<ReturnType<typeof fn>>;
+    try { r = await fn(); }
+    catch { r = { error: NETWORK_ERROR }; }
+    finally { setBusy(false); }
     if (r.error) setErr(r.error); else if (r.data) flash(syncSummary(r.data));
   };
   if (!asc) {
@@ -680,7 +688,11 @@ function AscAppPanel({ app, asc, go, flash }: { app: App; asc: AscConnection | n
       <p>Choose the App Store app this changelog belongs to. Its versions are imported right away.</p>
       {choices === null ? (
         <div className="row"><button className="button button-quiet" type="button" disabled={busy} onClick={async () => {
-          setBusy(true); const r = await ascApps(); setBusy(false);
+          setBusy(true);
+          let r: Awaited<ReturnType<typeof ascApps>>;
+          try { r = await ascApps(); }
+          catch { r = { error: NETWORK_ERROR }; }
+          finally { setBusy(false); }
           if (r.error) setErr(r.error); else { setChoices(r.data!.apps); setPick(r.data!.apps[0]?.id || ""); }
         }}>{busy ? "Loading…" : "Choose an App Store app"}</button></div>
       ) : choices.length === 0 ? (
@@ -723,7 +735,11 @@ function PlayKeyPanel({ play, flash }: { play: { clientEmail: string } | null; f
       <p>Needed only for Android apps that require app proofs. In the Google Cloud project linked to your app in Play Console, create a service account, enable the Play Integrity API and download a JSON key.</p>
       <form className="dash-form" onSubmit={async (e) => {
         e.preventDefault();
-        setBusy(true); const error = await playConnect(text); setBusy(false);
+        setBusy(true);
+        let error: string | null;
+        try { error = await playConnect(text); }
+        catch { error = NETWORK_ERROR; }
+        finally { setBusy(false); }
         if (error) return setErr(error);
         setErr(""); setText(""); flash("Google Play Integrity connected");
       }}>

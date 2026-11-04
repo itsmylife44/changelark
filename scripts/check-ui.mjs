@@ -691,6 +691,17 @@ await step("a bad or used email link explains itself", async () => {
   ok(new URL(p.url()).host === new URL(BASE).host, "redirected off-site");
   await p.context().close();
 });
+await step("delete account recovers when the request fails on the network", async () => {
+  await go(acct, "#account");
+  await acct.route("**/api/account", (r) => r.abort());
+  try {
+    await acct.getByLabel(/to confirm/).fill(email);
+    const del = acct.getByRole("button", { name: "Delete my account" });
+    await del.click();
+    await acct.locator(".danger-zone").getByRole("alert").waitFor({ timeout: T });
+    ok(await del.isEnabled(), "delete button stuck disabled");
+  } finally { await acct.unroute("**/api/account"); }
+});
 await step("delete account removes the account and its apps", async () => {
   await go(acct, "#connect");
   await acct.getByLabel("App name").fill("Doomed " + Date.now());

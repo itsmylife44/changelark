@@ -19,7 +19,10 @@ export function CopyCode({ code }: { code: string }) {
       <pre tabIndex={0} aria-label="Code"><code>{code}</code></pre>
       <button
         type="button"
-        onClick={() => navigator.clipboard?.writeText(code).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); }, () => {})}
+        onClick={async () => {
+          try { await navigator.clipboard.writeText(code); } catch { return; } // clipboard denied or missing: the code stays selectable, nothing to show
+          setCopied(true); setTimeout(() => setCopied(false), 1500);
+        }}
       >
         {copied ? "Copied" : "Copy"}
       </button>

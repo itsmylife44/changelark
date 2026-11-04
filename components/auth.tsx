@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Brand } from "./icons";
 import { ThemeSwitch } from "./widgets";
+import { withBusy } from "../lib/busy";
 import { login, signup, enterDemo, requestPasswordReset, updatePassword, CHECK_EMAIL } from "../lib/store";
 
 type Mode = "login" | "signup" | "forgot" | "reset";
@@ -40,11 +41,8 @@ export default function AuthPage({ mode, demo = false }: { mode: Mode; demo?: bo
   }, []);
 
   async function run(action: () => Promise<string | null>, onDone: () => void) {
-    setBusy(true); setError(""); setNotice("");
-    let err: string | null;
-    try { err = await action(); }
-    catch { err = "Something went wrong. Check your connection and try again."; }
-    finally { setBusy(false); }
+    setError(""); setNotice("");
+    const err = await withBusy(setBusy, action);
     if (err === CHECK_EMAIL) return setNotice(err);
     if (err) return setError(err);
     onDone();

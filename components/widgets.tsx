@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Icon } from "./icons";
 import { supabase } from "../lib/supabase";
@@ -7,7 +8,7 @@ import { supabase } from "../lib/supabase";
 export function LoginLink() {
   const [signedOut, setSignedOut] = useState(false);
   useEffect(() => { supabase().auth.getSession().then(({ data }) => setSignedOut(!data.session)); }, []);
-  return signedOut ? <a className="keep" href="/login">Log in</a> : null;
+  return signedOut ? <Link className="keep" href="/login">Log in</Link> : null;
 }
 
 export function CopyCode({ code }: { code: string }) {
@@ -18,7 +19,7 @@ export function CopyCode({ code }: { code: string }) {
       <pre tabIndex={0} aria-label="Code"><code>{code}</code></pre>
       <button
         type="button"
-        onClick={() => navigator.clipboard?.writeText(code).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); })}
+        onClick={() => navigator.clipboard?.writeText(code).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); }, () => {})}
       >
         {copied ? "Copied" : "Copy"}
       </button>

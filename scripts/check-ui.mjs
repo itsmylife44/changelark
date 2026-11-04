@@ -755,6 +755,19 @@ await step("internal links resolve", async () => {
   ok(broken.length === 0, "broken: " + broken.join(", "));
 });
 
+// ---------- client-side navigation ----------
+await step("internal links navigate without a full page load", async () => {
+  await go(v1, "docs/react-native/");
+  // A full document load wipes this marker; a client-side navigation keeps it.
+  await v1.evaluate(() => { window.__noReload = true; });
+  await v1.locator("nav[aria-label='Docs']").getByRole("link", { name: "Swift" }).click();
+  await v1.waitForURL(/\/docs\/swift\/?$/);
+  await v1.locator("nav[aria-label='Main']").getByRole("link", { name: "Docs", exact: true }).click();
+  await v1.waitForURL(/\/docs\/?$/);
+  await v1.locator("nav[aria-label='Docs'] a[aria-current='page']", { hasText: "Overview" }).waitFor();
+  ok(await v1.evaluate(() => window.__noReload === true), "clicking an internal link reloaded the page");
+});
+
 await browser.close();
 asc.close();
 const failed = results.filter((r) => r[0] === "✗");

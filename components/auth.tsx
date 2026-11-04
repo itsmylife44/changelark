@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Brand } from "./icons";
 import { ThemeSwitch } from "./widgets";
@@ -73,17 +74,17 @@ export default function AuthPage({ mode, demo = false }: { mode: Mode; demo?: bo
           {notice && <p className="lead" role="status">{notice}</p>}
           <button className={"button" + (ready ? " ready" : "")} type="submit" disabled={busy}>{c.button}</button>
         </form>
-        {mode === "signup" && <p>Have an account? <a href="/login">Log in</a></p>}
+        {mode === "signup" && <p>Have an account? <Link href="/login">Log in</Link></p>}
         {mode === "login" && (
           <>
-            <p><a href="/forgot-password">Forgot your password?</a></p>
+            <p><Link href="/forgot-password">Forgot your password?</Link></p>
             <p>
-              No account yet? <a href="/signup">Create one</a>
-              {demo ? <>, or{" "}<a href="/" onClick={(e) => { e.preventDefault(); run(enterDemo, () => { location.href = "/"; }); }}>try the demo</a></> : "."}
+              No account yet? <Link href="/signup">Create one</Link>
+              {demo ? <>, or{" "}<Link href="/" onClick={(e) => { e.preventDefault(); run(enterDemo, () => { location.href = "/"; }); }}>try the demo</Link></> : "."}
             </p>
           </>
         )}
-        {mode === "forgot" && <p>Remembered it? <a href="/login">Log in</a></p>}
+        {mode === "forgot" && <p>Remembered it? <Link href="/login">Log in</Link></p>}
         <div className="auth-theme"><ThemeSwitch /></div>
       </div>
       <aside className="auth-aside" aria-hidden="true">

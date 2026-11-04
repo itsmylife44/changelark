@@ -40,8 +40,10 @@ export default function AuthPage({ mode, demo = false }: { mode: Mode; demo?: bo
 
   async function run(action: () => Promise<string | null>, onDone: () => void) {
     setBusy(true); setError(""); setNotice("");
-    const err = await action();
-    setBusy(false);
+    let err: string | null;
+    try { err = await action(); }
+    catch { err = "Something went wrong. Check your connection and try again."; }
+    finally { setBusy(false); }
     if (err === CHECK_EMAIL) return setNotice(err);
     if (err) return setError(err);
     onDone();

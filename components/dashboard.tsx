@@ -29,7 +29,10 @@ const letterOf = (a: App) => a.name[0];
 const shortName = (a: App) => a.name.split(":")[0];
 
 function parseHash(): View {
-  const [name = "", slug, version] = decodeURIComponent(location.hash.slice(1)).split("/");
+  let hash: string;
+  try { hash = decodeURIComponent(location.hash.slice(1)); }
+  catch { return { name: "" }; } // undecodable hash (e.g. #%E0) → same default view as an empty hash
+  const [name = "", slug, version] = hash.split("/");
   // Older links keep working: #release/app/1.0 → the version in its app, #comments / #reports → the inbox.
   if (name === "release") return { name: "app", slug, version };
   if (name === "comments") return { name: "inbox" };

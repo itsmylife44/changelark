@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 // The developer workspace, laid out like a feedback inbox:
 // top bar with the app switcher · versions on the left · the selected version in the middle · live feedback on the right.
 import { SWIFT_PACKAGE_URL, REPO_URL } from "../lib/site-url";
@@ -128,9 +129,9 @@ export default function Dashboard({ smtpConfigured, demo }: { smtpConfigured: bo
           <div className="menu-pop">
             <p className="menu-who">{me.email}</p>
             <a href="#account">Account</a>
-            {me.email === DEMO.email && <a href="/signup">Create your own account</a>}
+            {me.email === DEMO.email && <Link href="/signup">Create your own account</Link>}
             {me.email === DEMO.email && <button onClick={async () => { if (confirm("Reset the demo workspace to how it started?")) { await resetDemo(); flash("Demo reset"); } }}>Reset demo</button>}
-            <a href="/docs">Docs</a>
+            <Link href="/docs">Docs</Link>
             <a href={REPO_URL}>Changelark on GitHub ↗</a>
             <ThemeSwitch />
             <button onClick={async () => { await logout(); location.href = "/login"; }}>Log out</button>
@@ -517,7 +518,7 @@ function SdkView({ app, go }: { app: App; go: Go }) {
           </div>
           <div className="panel">
             <h2>3. Configure it and attach What&apos;s new</h2>
-            <p>The sheet appears by itself after an update. Add <span className="mono">useAppAttest: true</span> to sign votes and comments with App Attest. <a className="made-by" href="/docs/swift">Swift guide</a></p>
+            <p>The sheet appears by itself after an update. Add <span className="mono">useAppAttest: true</span> to sign votes and comments with App Attest. <Link className="made-by" href="/docs/swift">Swift guide</Link></p>
             <CopyCode code={swift} />
           </div>
         </>
@@ -560,7 +561,7 @@ function AccountView({ me, apps, asc, play, emailAlerts, smtpConfigured, flash }
         <p><b style={{ color: "var(--text)" }}>{me.name}</b> · <span className="mono">{me.email}</span></p>
       </div>
       {isDemo ? (
-        <div className="panel"><h2>App Store Connect</h2><p>Not available in the shared demo. <a className="made-by" href="/signup">Create your own account</a> to import versions from App Store Connect.</p></div>
+        <div className="panel"><h2>App Store Connect</h2><p>Not available in the shared demo. <Link className="made-by" href="/signup">Create your own account</Link> to import versions from App Store Connect.</p></div>
       ) : <><ProfilePanel me={me} flash={flash} />
         {smtpConfigured && <AlertsPanel initial={emailAlerts} email={me.email} flash={flash} />}<AscKeyPanel asc={asc} flash={flash} /><PlayKeyPanel play={play} flash={flash} /></>}
       <div className="panel danger-zone">

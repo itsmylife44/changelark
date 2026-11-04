@@ -1,0 +1,4 @@
+{$DOMAIN} {
+	import /etc/caddy/supabase*.conf
+	reverse_proxy app:3000
+}

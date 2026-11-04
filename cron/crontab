@@ -1,0 +1,5 @@
+# Same times as vercel.json (UTC). Output goes to the container log.
+15 6 * * * /cron/run.sh asc-sync > /proc/1/fd/1 2>&1
+0 7 * * * /cron/run.sh alerts > /proc/1/fd/1 2>&1
+# Backup of the self-hosted Supabase into ./backups (skipped without POSTGRES_PASSWORD).
+30 3 * * * /cron/backup.sh > /proc/1/fd/1 2>&1

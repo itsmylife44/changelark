@@ -1,0 +1,21 @@
+{
+  "name": "changelark-react-native",
+  "version": "0.1.0",
+  "description": "Show What's new once per app update, with likes, comments and bug reports, in React Native apps.",
+  "keywords": ["react-native", "expo", "changelog", "release-notes", "whats-new", "feedback"],
+  "homepage": "https://github.com/itsmylife44/changelark/tree/main/sdk/react-native#readme",
+  "repository": { "type": "git", "url": "git+https://github.com/itsmylife44/changelark.git", "directory": "sdk/react-native" },
+  "bugs": { "url": "https://github.com/itsmylife44/changelark/issues" },
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "files": [
+    "src",
+    "README.md"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@react-native-async-storage/async-storage": ">=1.19",
+    "react": ">=18",
+    "react-native": ">=0.72"
+  }
+}

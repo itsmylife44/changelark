@@ -1,0 +1,42 @@
+# Self-hosted Supabase next to the app. Turn it on with
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.supabase.yml
+# in .env (scripts/setup.sh writes it). Supabase's own compose is pulled in from the
+# tag below; to upgrade, change the tag and run `docker compose up -d --build`.
+include:
+  - path:
+      - https://github.com/supabase/supabase.git#v1.26.08:docker/docker-compose.yml
+      - ./supabase/compose.override.yml
+
+services:
+  # Applies supabase/migrations on every `up`; already applied ones are skipped.
+  migrate:
+    build:
+      context: .
+      target: migrate
+    command: ["sh", "-c", "exec supabase db push --yes --remote=\"postgresql://postgres:$$POSTGRES_PASSWORD@db:5432/postgres?sslmode=disable\""]
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?run scripts/setup.sh first}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      kong:
+        condition: service_healthy
+
+  # cron/backup.sh reads these and writes the archives to ./backups on the host.
+  cron:
+    volumes:
+      - db-config:/backup/db-config:ro
+      - storage-data:/backup/storage:ro
+      - ./.env:/backup/.env:ro
+      - ./backups:/backups
+    depends_on: [db]
+
+  caddy:
+    volumes:
+      - ./supabase/caddy.conf:/etc/caddy/supabase.conf:ro

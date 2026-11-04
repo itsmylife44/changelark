@@ -1,0 +1,51 @@
+# Changes to Supabase's official compose (docker-compose.supabase.yml includes both).
+services:
+  # Data in named volumes: the official file keeps it next to the compose file, which here
+  # is Docker's download cache.
+  db:
+    volumes:
+      - db-data:/var/lib/postgresql/data
+  storage:
+    volumes:
+      - storage-data:/var/lib/storage
+    environment:
+      JWT_JWKS: ${JWT_JWKS:-{"keys":[]}}
+  imgproxy:
+    volumes:
+      - storage-data:/var/lib/storage
+  studio:
+    volumes:
+      - studio-snippets:/app/snippets
+
+  # Gateway (Studio lives behind it) and Postgres only on this machine. Caddy serves the
+  # API paths publicly; reach Studio through an SSH tunnel.
+  kong:
+    ports: !override
+      - 127.0.0.1:${KONG_HTTP_PORT}:8000/tcp
+      - 127.0.0.1:${KONG_HTTPS_PORT}:8443/tcp
+  supavisor:
+    ports: !override
+      - 127.0.0.1:${POSTGRES_PORT}:5432
+      - 127.0.0.1:${POOLER_PROXY_PORT_TRANSACTION}:6543
+
+  # What add-new-auth-keys.sh would uncomment: services verify the new asymmetric keys.
+  auth:
+    environment:
+      GOTRUE_JWT_KEYS: ${JWT_KEYS:-[]}
+      # Changelark's email templates (links to /auth/confirm), served by the app from
+      # public/email-templates/: self-hosted Auth only reads templates from a URL.
+      GOTRUE_MAILER_TEMPLATES_CONFIRMATION: http://app:3000/email-templates/confirmation.html
+      GOTRUE_MAILER_TEMPLATES_RECOVERY: http://app:3000/email-templates/recovery.html
+      GOTRUE_MAILER_SUBJECTS_CONFIRMATION: Confirm your Changelark account
+      GOTRUE_MAILER_SUBJECTS_RECOVERY: Reset your Changelark password
+  realtime:
+    environment:
+      API_JWT_JWKS: ${JWT_JWKS:-{"keys":[]}}
+  functions:
+    environment:
+      SUPABASE_JWKS: ${JWT_JWKS:-{"keys":[]}}
+
+volumes:
+  db-data:
+  storage-data:
+  studio-snippets:

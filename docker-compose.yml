@@ -1,0 +1,55 @@
+# Changelark in Docker. Values come from .env (see docs/self-hosting.md).
+# Caddy runs when .env has COMPOSE_PROFILES=caddy; leave it out if you already have a proxy.
+# Self-hosted Supabase: docker-compose.supabase.yml, switched on by COMPOSE_FILE (scripts/setup.sh).
+services:
+  app:
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL:?set NEXT_PUBLIC_SUPABASE_URL in .env}
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:?set NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY in .env}
+        NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL:-https://${DOMAIN}}
+        NEXT_PUBLIC_SWIFT_PACKAGE_URL: ${NEXT_PUBLIC_SWIFT_PACKAGE_URL:-}
+    env_file:
+      - path: .env
+        required: false # the ${...:?} checks above already fail without it
+    ports:
+      - "${APP_PORT:-127.0.0.1:3000}:3000"
+    restart: unless-stopped
+
+  # Runs the two scheduled jobs of vercel.json (cron/crontab) against the app, with CRON_SECRET,
+  # and the nightly backup when Supabase runs here too (docker-compose.supabase.yml).
+  cron:
+    build:
+      context: .
+      target: cron
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      APP_URL: http://app:3000
+    volumes:
+      - ./cron:/cron:ro
+    command: sh -c "crontab /cron/crontab && exec crond -f"
+    depends_on: [app]
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    profiles: [caddy]
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [app]
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -63,6 +63,15 @@ await step("reset demo", async () => {
   ok((await appOptions(dev)).length === 4, "expected 4 apps");
 });
 
+// ---------- malformed hash ----------
+await step("a malformed hash opens the default view without a page error", async () => {
+  const before = problems.length;
+  await go(dev, "#%E0");
+  await dev.locator(".version-item").first().waitFor();
+  const errors = problems.slice(before).filter((m) => m.includes("page error"));
+  ok(!errors.length, errors[0]);
+});
+
 // ---------- apps ----------
 await step("connect an app; an empty app opens on its first version", async () => {
   await go(dev, "#connect");

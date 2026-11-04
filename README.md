@@ -79,7 +79,7 @@ Then, in another terminal:
 
 ```bash
 npm run check:backend -- http://127.0.0.1:3000   # API, RLS isolation, rate limits, email confirmation
-npm run check:ui -- http://127.0.0.1:3000        # 65-step click-through in a real browser (Playwright)
+npm run check:ui -- http://127.0.0.1:3000        # 68-step click-through in a real browser (Playwright)
 npm run check:proofs -- http://127.0.0.1:3000    # App Attest and Play Integrity with test certificates (needs SUPABASE_SECRET_KEY)
 npx tsc --noEmit
 npx supabase db advisors                          # Supabase security and performance advisors

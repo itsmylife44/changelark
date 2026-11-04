@@ -2,6 +2,9 @@
 node_modules
 .next
 .env*
+# nightly archives from cron/backup.sh: they hold .env, the Vault key and the DB dump
+backups
+scripts/.attest-test-root.pem
 .build
 .swiftpm
 supabase/.temp

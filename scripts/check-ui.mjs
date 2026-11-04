@@ -63,6 +63,15 @@ await step("reset demo", async () => {
   ok((await appOptions(dev)).length === 4, "expected 4 apps");
 });
 
+// ---------- malformed hash ----------
+await step("a malformed hash opens the default view without a page error", async () => {
+  const before = problems.length;
+  await go(dev, "#%E0");
+  await dev.locator(".version-item").first().waitFor();
+  const errors = problems.slice(before).filter((m) => m.includes("page error"));
+  ok(!errors.length, errors[0]);
+});
+
 // ---------- apps ----------
 await step("connect an app; an empty app opens on its first version", async () => {
   await go(dev, "#connect");
@@ -659,6 +668,8 @@ await step("forgot password: email link, new password, sign in with it", async (
   await menu(acct, "Log out");
   await acct.waitForURL(/\/login$/, { timeout: T });
   await acct.getByRole("link", { name: "Forgot your password?" }).click();
+  // Client-side navigation: wait for the new page, or the email lands in the login form being replaced.
+  await acct.waitForURL(/\/forgot-password$/, { timeout: T });
   await acct.getByLabel("Email").fill(email);
   await acct.getByRole("button", { name: /Email me a link/ }).click();
   await acct.getByRole("status").filter({ hasText: "on its way" }).waitFor({ timeout: T });
@@ -690,6 +701,17 @@ await step("a bad or used email link explains itself", async () => {
   await p.goto(`${BASE}/auth/confirm?token_hash=nope&type=email&next=//evil.example.com`);
   ok(new URL(p.url()).host === new URL(BASE).host, "redirected off-site");
   await p.context().close();
+});
+await step("delete account recovers when the request fails on the network", async () => {
+  await go(acct, "#account");
+  await acct.route("**/api/account", (r) => r.abort());
+  try {
+    await acct.getByLabel(/to confirm/).fill(email);
+    const del = acct.getByRole("button", { name: "Delete my account" });
+    await del.click();
+    await acct.locator(".danger-zone").getByRole("alert").waitFor({ timeout: T });
+    ok(await del.isEnabled(), "delete button stuck disabled");
+  } finally { await acct.unroute("**/api/account"); }
 });
 await step("delete account removes the account and its apps", async () => {
   await go(acct, "#connect");
@@ -753,6 +775,19 @@ await step("internal links resolve", async () => {
   const broken = [];
   for (const h of seen) { const r = await v1.request.get(BASE + h); if (r.status() >= 400) broken.push(`${h} ${r.status()}`); }
   ok(broken.length === 0, "broken: " + broken.join(", "));
+});
+
+// ---------- client-side navigation ----------
+await step("internal links navigate without a full page load", async () => {
+  await go(v1, "docs/react-native/");
+  // A full document load wipes this marker; a client-side navigation keeps it.
+  await v1.evaluate(() => { window.__noReload = true; });
+  await v1.locator("nav[aria-label='Docs']").getByRole("link", { name: "Swift" }).click();
+  await v1.waitForURL(/\/docs\/swift\/?$/);
+  await v1.locator("nav[aria-label='Main']").getByRole("link", { name: "Docs", exact: true }).click();
+  await v1.waitForURL(/\/docs\/?$/);
+  await v1.locator("nav[aria-label='Docs'] a[aria-current='page']", { hasText: "Overview" }).waitFor();
+  ok(await v1.evaluate(() => window.__noReload === true), "clicking an internal link reloaded the page");
 });
 
 await browser.close();

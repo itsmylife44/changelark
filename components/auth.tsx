@@ -1,7 +1,9 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Brand } from "./icons";
 import { ThemeSwitch } from "./widgets";
+import { withBusy } from "../lib/busy";
 import { login, signup, enterDemo, requestPasswordReset, updatePassword, CHECK_EMAIL } from "../lib/store";
 
 type Mode = "login" | "signup" | "forgot" | "reset";
@@ -39,9 +41,8 @@ export default function AuthPage({ mode, demo = false }: { mode: Mode; demo?: bo
   }, []);
 
   async function run(action: () => Promise<string | null>, onDone: () => void) {
-    setBusy(true); setError(""); setNotice("");
-    const err = await action();
-    setBusy(false);
+    setError(""); setNotice("");
+    const err = await withBusy(setBusy, action);
     if (err === CHECK_EMAIL) return setNotice(err);
     if (err) return setError(err);
     onDone();
@@ -73,17 +74,17 @@ export default function AuthPage({ mode, demo = false }: { mode: Mode; demo?: bo
           {notice && <p className="lead" role="status">{notice}</p>}
           <button className={"button" + (ready ? " ready" : "")} type="submit" disabled={busy}>{c.button}</button>
         </form>
-        {mode === "signup" && <p>Have an account? <a href="/login">Log in</a></p>}
+        {mode === "signup" && <p>Have an account? <Link href="/login">Log in</Link></p>}
         {mode === "login" && (
           <>
-            <p><a href="/forgot-password">Forgot your password?</a></p>
+            <p><Link href="/forgot-password">Forgot your password?</Link></p>
             <p>
-              No account yet? <a href="/signup">Create one</a>
-              {demo ? <>, or{" "}<a href="/" onClick={(e) => { e.preventDefault(); run(enterDemo, () => { location.href = "/"; }); }}>try the demo</a></> : "."}
+              No account yet? <Link href="/signup">Create one</Link>
+              {demo ? <>, or{" "}<Link href="/" onClick={(e) => { e.preventDefault(); run(enterDemo, () => { location.href = "/"; }); }}>try the demo</Link></> : "."}
             </p>
           </>
         )}
-        {mode === "forgot" && <p>Remembered it? <a href="/login">Log in</a></p>}
+        {mode === "forgot" && <p>Remembered it? <Link href="/login">Log in</Link></p>}
         <div className="auth-theme"><ThemeSwitch /></div>
       </div>
       <aside className="auth-aside" aria-hidden="true">

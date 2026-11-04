@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { SiteHeader, SiteFooter, DocsTabs } from "../../components/site";
 import { FAQ } from "../../components/faq";
 
@@ -15,10 +16,10 @@ export default function Docs() {
 
           <h2 id="start">Five steps</h2>
           <ol className="steps">
-            <li><strong>Create an account</strong><span>and confirm your email. Or skip this and <a href="/">open the demo</a>.</span></li>
+            <li><strong>Create an account</strong><span>and confirm your email. Or skip this and <Link href="/">open the demo</Link>.</span></li>
             <li><strong>Add an app</strong><span>with a name, and optionally an App Store link and a contact link. Its public page exists right away.</span></li>
             <li><strong>Write a version</strong><span>with its number and notes. Publish now, keep it as a draft, or pick a later date.</span></li>
-            <li><strong>Install the package</strong><span>with the key from the <strong>Install</strong> tab: <a href="/docs/swift">Swift</a> or <a href="/docs/react-native">React Native</a>.</span></li>
+            <li><strong>Install the package</strong><span>with the key from the <strong>Install</strong> tab: <Link href="/docs/swift">Swift</Link> or <Link href="/docs/react-native">React Native</Link>.</span></li>
             <li><strong>Answer people</strong><span>as reactions, comments and reports arrive live in the inbox.</span></li>
           </ol>
 

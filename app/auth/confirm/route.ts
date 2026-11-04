@@ -10,7 +10,6 @@ const TYPES: EmailOtpType[] = ["email", "signup", "recovery", "email_change", "i
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams;
-  const next = safeNext(q.get("next"));
   const sb = await userClient();
   const tokenHash = q.get("token_hash");
   const type = q.get("type") as EmailOtpType | null;
@@ -18,5 +17,5 @@ export async function GET(req: NextRequest) {
   let ok = false;
   if (tokenHash && type && TYPES.includes(type)) ok = !(await sb.auth.verifyOtp({ type, token_hash: tokenHash })).error;
   else if (code) ok = !(await sb.auth.exchangeCodeForSession(code)).error;
-  redirect(ok ? next : "/login?error=link");
+  redirect(safeNext(ok ? q.get("next") : "/login?error=link")); // "/login?error=link" is same-site, so it passes unchanged
 }

@@ -12,7 +12,7 @@ registerHooks({
 const { safeNext } = await import("./safe-next");
 
 test("keeps same-site paths", () => {
-  for (const p of ["/", "/settings", "/a?b=1#c"]) assert.equal(safeNext(p), p, p);
+  for (const p of ["/", "/settings", "/a?b=1#c", "/login?error=link"]) assert.equal(safeNext(p), p, p);
 });
 
 test("falls back to / for anything that could leave the site", () => {

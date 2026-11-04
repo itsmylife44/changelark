@@ -668,6 +668,8 @@ await step("forgot password: email link, new password, sign in with it", async (
   await menu(acct, "Log out");
   await acct.waitForURL(/\/login$/, { timeout: T });
   await acct.getByRole("link", { name: "Forgot your password?" }).click();
+  // Client-side navigation: wait for the new page, or the email lands in the login form being replaced.
+  await acct.waitForURL(/\/forgot-password$/, { timeout: T });
   await acct.getByLabel("Email").fill(email);
   await acct.getByRole("button", { name: /Email me a link/ }).click();
   await acct.getByRole("status").filter({ hasText: "on its way" }).waitFor({ timeout: T });
